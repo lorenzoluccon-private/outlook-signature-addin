@@ -1,0 +1,146 @@
+<meta
+    http-equiv="X-UA-Compatible"
+    content="IE=Edge"
+/>
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+/>
+
+<title>FG Firma Graph Pilot</title>
+
+<script
+    type="text/javascript"
+    src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"
+>
+</script>
+
+<link
+    rel="stylesheet"
+    href="https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/office-ui-fabric-core/11.1.0/css/fabric.min.css"
+/>
+
+<link
+    href="taskpane.css"
+    rel="stylesheet"
+    type="text/css"
+/>
+
+<header
+    class="ms-welcome__header ms-bgColor-neutralLighter"
+>
+    ../../assets/logo-filled.png
+
+    <h1 class="ms-font-xxl">
+        FG Firma Graph Pilot
+    </h1>
+</header>
+
+<section
+    id="sideload-msg"
+    class="ms-welcome__main"
+>
+    <h2 class="ms-font-xl">
+        Inizializzazione del componente aggiuntivo in corso...
+    </h2>
+
+    <p class="ms-font-m">
+        Se questo messaggio rimane visibile,
+        verificare che il componente aggiuntivo
+        sia stato installato correttamente in Outlook.
+    </p>
+</section>
+
+<main
+    id="app-body"
+    class="ms-welcome__main"
+    style="display: none;"
+>
+    <h2 class="ms-font-xl">
+        Gestione firma aziendale
+    </h2>
+
+    <p class="ms-font-m">
+        Questo componente aggiuntivo recupera
+        la firma aziendale associata all'account
+        Microsoft 365 e la inserisce nel messaggio.
+    </p>
+
+    <ul class="ms-List ms-welcome__features">
+
+        <li class="ms-ListItem">
+            <i
+                class="ms-Icon ms-Icon--Contact ms-font-xl"
+            ></i>
+
+            <span class="ms-font-m">
+                Firma personalizzata in base
+                all'indirizzo email
+            </span>
+        </li>
+
+        <li class="ms-ListItem">
+            <i
+                class="ms-Icon ms-Icon--Refresh ms-font-xl"
+            ></i>
+
+            <span class="ms-font-m">
+                Aggiornamento periodico
+                da Microsoft 365
+            </span>
+        </li>
+
+        <li class="ms-ListItem">
+            <i
+                class="ms-Icon ms-Icon--OfflineStorage ms-font-xl"
+            ></i>
+
+            <span class="ms-font-m">
+                Utilizzo dell'ultima firma disponibile
+                quando Microsoft 365 non è
+                temporaneamente raggiungibile
+            </span>
+        </li>
+
+    </ul>
+
+    <div
+        role="button"
+        id="connect-microsoft-365"
+        class="ms-welcome__action ms-Button ms-Button--primary ms-font-l"
+        tabindex="0"
+        aria-label="Connetti a Microsoft 365"
+    >
+        <span class="ms-Button-label">
+            Connetti a Microsoft 365
+        </span>
+    </div>
+
+    <p class="ms-font-s">
+        Eseguire la connessione una sola volta
+        per autorizzare il recupero della firma
+        da Microsoft 365.
+    </p>
+
+    <div
+        role="button"
+        id="run"
+        class="ms-welcome__action ms-Button ms-Button--hero ms-font-l"
+        tabindex="0"
+        aria-label="Inserisci firma aziendale"
+    >
+        <span class="ms-Button-label">
+            Inserisci firma aziendale
+        </span>
+    </div>
+
+    <p class="ms-font-s">
+        La firma viene aggiornata automaticamente
+        ogni sei ore.
+    </p>
+
+    <p>
+        <label id="item-subject"></label>
+    </p>
+</main>

@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<OfficeApp
+    xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+    xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides"
+    xsi:type="MailApp">
+
+  <Id>64448c78-0faf-484e-b452-ca732259e716</Id>
+
+  <Version>1.0.0.8</Version>
+
+  <ProviderName>FG Automazioni S.r.l.</ProviderName>
+
+  <DefaultLocale>it-IT</DefaultLocale>
+
+  <DisplayName
+      DefaultValue="FG Firma Graph Pilot"/>
+
+  <Description
+      DefaultValue="Versione pilota della firma aziendale recuperata tramite Microsoft Graph."/>
+
+  <IconUrl
+      DefaultValue="https://fg-signature-addin.pages.dev/assets/icon-64.png"/>
+
+  <HighResolutionIconUrl
+      DefaultValue="https://fg-signature-addin.pages.dev/assets/icon-128.png"/>
+
+  <SupportUrl
+      DefaultValue="https://www.fgautomazioni.it/"/>
+
+  <AppDomains>
+    <AppDomain>https://fg-signature-addin.pages.dev</AppDomain>
+    <AppDomain>https://www.fgautomazioni.it</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="Mailbox"/>
+    </Sets>
+  </Requirements>
+
+  <!--
+      Sezione legacy richiesta per la validazione del manifest.
+      Le funzionalita moderne vengono definite nella sezione
+      VersionOverridesV1_1.
+  -->
+
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation
+            DefaultValue="https://fg-signature-addin.pages.dev/taskpane.html?v=2"/>
+        <RequestedHeight>250</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <Permissions>ReadWriteMailbox</Permissions>
+
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule
+        xsi:type="ItemIs"
+        ItemType="Message"
+        FormType="Read"/>
+  </Rule>
+
+  <DisableEntityHighlighting>true</DisableEntityHighlighting>
+
+  <!--
+      VersionOverrides 1.0 funge da contenitore
+      per VersionOverrides 1.1.
+  -->
+
+  <VersionOverrides
+      xmlns="http://schemas.microsoft.com/office/mailappversionoverrides"
+      xsi:type="VersionOverridesV1_0">
+
+    <VersionOverrides
+        xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1"
+        xsi:type="VersionOverridesV1_1">
+
+      <Description resid="App.Description"/>
+
+      <!--
+          Outlook Mobile dichiara supporto generale fino a Mailbox 1.5.
+          Microsoft abilita espressamente su mobile OnNewMessageCompose
+          e le API necessarie per lo scenario di firma automatica.
+      -->
+
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.5">
+          <bt:Set Name="Mailbox"/>
+        </bt:Sets>
+      </Requirements>
+
+      <Hosts>
+        <Host xsi:type="MailHost">
+
+          <!--
+              Runtime condiviso dagli eventi automatici.
+
+              Autorun.Url viene utilizzato dai client basati
+              su runtime browser.
+
+              Autorun.Script.Url viene utilizzato dai client
+              che supportano il runtime JavaScript diretto.
+          -->
+
+          <Runtimes>
+            <Runtime resid="Autorun.Url">
+              <Override
+                  type="javascript"
+                  resid="Autorun.Script.Url"/>
+            </Runtime>
+          </Runtimes>
+
+          <!--
+              Configurazione per Outlook desktop:
+              - Outlook sul Web
+              - Nuovo Outlook per Windows
+              - Outlook classico per Windows, se supportato
+              - Outlook per Mac
+          -->
+
+          <DesktopFormFactor>
+
+            <FunctionFile resid="Commands.Url"/>
+
+            <!--
+                Pulsanti manuali mantenuti come fallback.
+            -->
+
+            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+              <OfficeTab id="TabDefault">
+
+                <Group id="msgComposeGroup">
+
+                  <Label resid="GroupLabel"/>
+
+                  <Control
+                      xsi:type="Button"
+                      id="OpenTaskpaneButton">
+
+                    <Label resid="TaskpaneButton.Label"/>
+
+                    <Supertip>
+                      <Title resid="TaskpaneButton.Label"/>
+                      <Description resid="TaskpaneButton.Tooltip"/>
+                    </Supertip>
+
+                    <Icon>
+                      <bt:Image
+                          size="16"
+                          resid="Icon.16x16"/>
+                      <bt:Image
+                          size="32"
+                          resid="Icon.32x32"/>
+                      <bt:Image
+                          size="80"
+                          resid="Icon.80x80"/>
+                    </Icon>
+
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Url"/>
+                    </Action>
+
+                  </Control>
+
+                  <Control
+                      xsi:type="Button"
+                      id="InsertSignatureButton">
+
+                    <Label resid="ActionButton.Label"/>
+
+                    <Supertip>
+                      <Title resid="ActionButton.Label"/>
+                      <Description resid="ActionButton.Tooltip"/>
+                    </Supertip>
+
+                    <Icon>
+                      <bt:Image
+                          size="16"
+                          resid="Icon.16x16"/>
+                      <bt:Image
+                          size="32"
+                          resid="Icon.32x32"/>
+                      <bt:Image
+                          size="80"
+                          resid="Icon.80x80"/>
+                    </Icon>
+
+                    <Action xsi:type="ExecuteFunction">
+                      <FunctionName>action</FunctionName>
+                    </Action>
+
+                  </Control>
+
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+
+            <!--
+                Evento automatico per Outlook desktop.
+            -->
+
+            <ExtensionPoint xsi:type="LaunchEvent">
+
+              <LaunchEvents>
+                <LaunchEvent
+                    Type="OnNewMessageCompose"
+                    FunctionName="onNewMessageCompose"/>
+              </LaunchEvents>
+
+              <SourceLocation resid="Autorun.Url"/>
+
+            </ExtensionPoint>
+
+          </DesktopFormFactor>
+
+          <!--
+              Configurazione per Outlook Mobile:
+              - Outlook per iOS
+              - Outlook per Android
+
+              Non vengono aggiunti pulsanti di composizione mobile.
+              L'add-in viene eseguito automaticamente tramite
+              OnNewMessageCompose.
+          -->
+
+          <MobileFormFactor>
+
+            <FunctionFile resid="Autorun.Url"/>
+
+            <ExtensionPoint xsi:type="LaunchEvent">
+
+              <LaunchEvents>
+                <LaunchEvent
+                    Type="OnNewMessageCompose"
+                    FunctionName="onNewMessageCompose"/>
+              </LaunchEvents>
+
+              <SourceLocation resid="Autorun.Url"/>
+
+            </ExtensionPoint>
+
+          </MobileFormFactor>
+
+        </Host>
+      </Hosts>
+
+      <Resources>
+
+        <bt:Images>
+
+          <bt:Image
+              id="Icon.16x16"
+              DefaultValue="https://fg-signature-addin.pages.dev/assets/icon-16.png"/>
+
+          <bt:Image
+              id="Icon.32x32"
+              DefaultValue="https://fg-signature-addin.pages.dev/assets/icon-32.png"/>
+
+          <bt:Image
+              id="Icon.80x80"
+              DefaultValue="https://fg-signature-addin.pages.dev/assets/icon-80.png"/>
+
+        </bt:Images>
+
+        <bt:Urls>
+
+          <bt:Url
+              id="Commands.Url"
+              DefaultValue="https://fg-signature-addin.pages.dev/commands.html?v=2"/>
+
+          <bt:Url
+              id="Commands.Script.Url"
+              DefaultValue="https://fg-signature-addin.pages.dev/commands.js?v=2"/>
+
+          <bt:Url
+              id="Autorun.Url"
+              DefaultValue="https://fg-signature-addin.pages.dev/autorun.html?v=2"/>
+
+          <bt:Url
+              id="Autorun.Script.Url"
+              DefaultValue="https://fg-signature-addin.pages.dev/autorun.js?v=2"/>
+
+          <bt:Url
+              id="Taskpane.Url"
+              DefaultValue="https://fg-signature-addin.pages.dev/taskpane.html?v=2"/>
+
+        </bt:Urls>
+
+        <bt:ShortStrings>
+
+          <bt:String
+              id="GroupLabel"
+              DefaultValue="Firma aziendale FG"/>
+
+          <bt:String
+              id="TaskpaneButton.Label"
+              DefaultValue="Gestione firma"/>
+
+          <bt:String
+              id="ActionButton.Label"
+              DefaultValue="Inserisci firma aziendale"/>
+
+        </bt:ShortStrings>
+
+        <bt:LongStrings>
+
+          <bt:String
+              id="App.Description"
+              DefaultValue="Versione pilota della firma aziendale recuperata tramite Microsoft Graph."/>
+
+          <bt:String
+              id="TaskpaneButton.Tooltip"
+              DefaultValue="Apre il pannello di gestione della firma aziendale."/>
+
+          <bt:String
+              id="ActionButton.Tooltip"
+              DefaultValue="Inserisce la firma aziendale aggiornata nel messaggio."/>
+
+        </bt:LongStrings>
+
+      </Resources>
+
+    </VersionOverrides>
+  </VersionOverrides>
+
+</OfficeApp>
+
+
+

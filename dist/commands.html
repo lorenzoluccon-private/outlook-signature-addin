@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+
+    <title>Firma aziendale FG - Runtime</title>
+
+    <script
+        type="text/javascript"
+        src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js">
+    </script>
+
+    <script type="text/javascript">
+        Office.initialize = function () {
+            console.log(
+                "[Firma aziendale FG] Office.js inizializzato."
+            );
+        };
+    </script>
+</head>
+
+<body>
+<script defer src="polyfill.js"></script><script defer src="commands.js"></script></body>
+
+</html>
