@@ -3,7 +3,7 @@
  * Nested App Authentication.
  */
 
-/* global Office */
+/* global Office, window */
 
 import {
   createNestablePublicClientApplication,
@@ -11,52 +11,100 @@ import {
   InteractionRequiredAuthError,
 } from "@azure/msal-browser";
 
-const CLIENT_ID =
-  "84170119-cf48-41a1-b14b-f28116320cb4";
+const CLIENT_ID = "84170119-cf48-41a1-b14b-f28116320cb4";
 
-const TENANT_ID =
-  "35683b98-5a14-4911-a637-34d25c24a531";
+const TENANT_ID = "35683b98-5a14-4911-a637-34d25c24a531";
 
-const GRAPH_SCOPES = [
-  "Mail.Read",
-  "User.Read",
-];
+const GRAPH_SCOPES = ["Mail.Read", "User.Read"];
 
-let msalInstance:
-  | IPublicClientApplication
-  | undefined;
+/*
+ * Timeout applicato soltanto all'autenticazione silenziosa
+ * utilizzata dal runtime automatico.
+ *
+ * Un evento automatico Outlook non deve restare bloccato
+ * indefinitamente in attesa di MSAL.
+ */
+const SILENT_TOKEN_TIMEOUT_MILLISECONDS = 5000;
 
-async function getMsalInstance():
-  Promise<IPublicClientApplication> {
+let msalInstance: IPublicClientApplication | undefined;
+
+let msalInstancePromise: Promise<IPublicClientApplication> | undefined;
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+function withTimeout<T>(
+  operation: Promise<T>,
+  milliseconds: number,
+  timeoutMessage: string
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, milliseconds);
+
+    operation.then(
+      (value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timeoutId);
+        reject(error);
+      }
+    );
+  });
+}
+
+async function createMsalInstance(): Promise<IPublicClientApplication> {
+  const naaSupported = Office.context.requirements.isSetSupported("NestedAppAuth", "1.1");
+
+  if (!naaSupported) {
+    throw new Error("Questo client Outlook non supporta Nested App Authentication.");
+  }
+
+  return createNestablePublicClientApplication({
+    auth: {
+      clientId: CLIENT_ID,
+      authority: `https://login.microsoftonline.com/${TENANT_ID}`,
+    },
+    cache: {
+      cacheLocation: "localStorage",
+    },
+  });
+}
+
+async function getMsalInstance(): Promise<IPublicClientApplication> {
   if (msalInstance) {
     return msalInstance;
   }
 
-  const naaSupported =
-    Office.context.requirements.isSetSupported(
-      "NestedAppAuth",
-      "1.1"
-    );
-
-  if (!naaSupported) {
-    throw new Error(
-      "Questo client Outlook non supporta Nested App Authentication."
-    );
+  /*
+   * Se più chiamate arrivano contemporaneamente,
+   * riutilizziamo la stessa inizializzazione MSAL.
+   */
+  if (!msalInstancePromise) {
+    msalInstancePromise = createMsalInstance()
+      .then((instance) => {
+        msalInstance = instance;
+        return instance;
+      })
+      .catch((error) => {
+        /*
+         * Se l'inizializzazione fallisce, permettiamo
+         * un nuovo tentativo alla chiamata successiva.
+         */
+        msalInstancePromise = undefined;
+        throw error;
+      });
   }
 
-  msalInstance =
-    await createNestablePublicClientApplication({
-      auth: {
-        clientId: CLIENT_ID,
-        authority:
-          `https://login.microsoftonline.com/${TENANT_ID}`,
-      },
-      cache: {
-        cacheLocation: "localStorage",
-      },
-    });
-
-  return msalInstance;
+  return msalInstancePromise;
 }
 
 /*
@@ -66,28 +114,28 @@ async function getMsalInstance():
  * perché gli eventi automatici Outlook non
  * possono interagire con l'interfaccia utente.
  */
-export async function acquireGraphTokenSilent():
-  Promise<string> {
-  const instance = await getMsalInstance();
+export async function acquireGraphTokenSilent(): Promise<string> {
+  const silentTokenOperation = (async (): Promise<string> => {
+    const instance = await getMsalInstance();
 
-  try {
-    const response =
-      await instance.acquireTokenSilent({
-        scopes: GRAPH_SCOPES,
-        loginHint:
-          Office.context.mailbox.userProfile
-            .emailAddress,
-      });
+    const response = await instance.acquireTokenSilent({
+      scopes: GRAPH_SCOPES,
+      loginHint: Office.context.mailbox.userProfile.emailAddress,
+    });
 
     return response.accessToken;
+  })();
+
+  try {
+    return await withTimeout(
+      silentTokenOperation,
+      SILENT_TOKEN_TIMEOUT_MILLISECONDS,
+      `L'autenticazione silenziosa Microsoft Graph ` +
+        `non ha risposto entro ${SILENT_TOKEN_TIMEOUT_MILLISECONDS / 1000} secondi.`
+    );
   } catch (error) {
-
-  throw new Error(
-    "MSAL: " +
-    JSON.stringify(error)
-  );
-
-}
+    throw new Error("Autenticazione Microsoft Graph non riuscita: " + getErrorMessage(error));
+  }
 }
 
 /*
@@ -95,38 +143,30 @@ export async function acquireGraphTokenSilent():
  *
  * Può mostrare l'interfaccia Microsoft per
  * l'accesso o il consenso dell'utente.
+ *
+ * Il flusso interattivo non usa il timeout breve
+ * del runtime automatico, perché l'utente può
+ * impiegare del tempo per completare l'accesso.
  */
-export async function acquireGraphTokenInteractive():
-  Promise<string> {
+export async function acquireGraphTokenInteractive(): Promise<string> {
   const instance = await getMsalInstance();
 
   try {
-    const silentResponse =
-      await instance.acquireTokenSilent({
-        scopes: GRAPH_SCOPES,
-        loginHint:
-          Office.context.mailbox.userProfile
-            .emailAddress,
-      });
+    const silentResponse = await instance.acquireTokenSilent({
+      scopes: GRAPH_SCOPES,
+      loginHint: Office.context.mailbox.userProfile.emailAddress,
+    });
 
     return silentResponse.accessToken;
   } catch (silentError) {
-    if (
-      !(
-        silentError instanceof
-        InteractionRequiredAuthError
-      )
-    ) {
+    if (!(silentError instanceof InteractionRequiredAuthError)) {
       throw silentError;
     }
 
-    const interactiveResponse =
-      await instance.acquireTokenPopup({
-        scopes: GRAPH_SCOPES,
-        loginHint:
-          Office.context.mailbox.userProfile
-            .emailAddress,
-      });
+    const interactiveResponse = await instance.acquireTokenPopup({
+      scopes: GRAPH_SCOPES,
+      loginHint: Office.context.mailbox.userProfile.emailAddress,
+    });
 
     return interactiveResponse.accessToken;
   }
